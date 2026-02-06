@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -14,7 +14,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 # Initialize Stripe
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "sk_test_...")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
 
 class CreateCheckoutSessionRequest(BaseModel):
@@ -282,14 +282,33 @@ async def cancel_subscription(
 
 @router.post("/webhook")
 async def stripe_webhook(
-    request: dict,
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    """Handle Stripe webhook events"""
+    """Handle Stripe webhook events with signature verification"""
+    webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
     
-    # TODO: Verify webhook signature
-    event_type = request.get("type")
-    data = request.get("data", {}).get("object", {})
+    # Read raw body for signature verification
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature", "")
+    
+    if not webhook_secret:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Stripe webhook secret not configured"
+        )
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, webhook_secret
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    event_type = event["type"]
+    data = event["data"]["object"]
     
     if event_type == "checkout.session.completed":
         # Handle successful checkout

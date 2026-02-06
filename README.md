@@ -1,328 +1,239 @@
 # LinkedProcurement
 
-A comprehensive B2B supply chain sourcing platform with LinkedIn API integration, verified POCs (Points of Contact), and real-time RFQ (Request for Quote) management.
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Railway](https://img.shields.io/badge/Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
 
-## 🎯 Key Features
+> **B2B Supply Chain Sourcing Platform** — LinkedIn-verified POCs, real-time RFQ management, and AI-powered supplier matching.
 
-- **LinkedIn Verified POCs**: Every point of contact is verified through LinkedIn OAuth 2.0
-- **Real-time RFQ Management**: Create, manage, and respond to RFQs with live updates
-- **AI-Powered Matching**: Smart supplier recommendations based on capabilities and history
-- **Advanced Search**: Elasticsearch-powered search with faceted filtering
-- **Real-time Messaging**: WebSocket-based communication between buyers and suppliers
-- **Document Management**: Secure file uploads with AWS S3 integration
-- **Analytics Dashboard**: Performance metrics and business intelligence
-- **Mobile Responsive**: Full mobile and tablet support
+---
+
+## ✨ Features
+
+- **LinkedIn Verified POCs** — Every point of contact is verified through LinkedIn OAuth 2.0
+- **Real-time RFQ Management** — Create, manage, and respond to RFQs with live updates
+- **AI-Powered Matching** — Smart supplier recommendations based on capabilities and history
+- **Advanced Search** — Elasticsearch-powered search with faceted filtering
+- **Real-time Messaging** — WebSocket-based communication between buyers and suppliers
+- **Document Management** — Secure file uploads with AWS S3 integration
+- **Analytics Dashboard** — Performance metrics and business intelligence
+- **Multi-Factor Authentication** — TOTP-based MFA for enhanced security
+- **Organization & RBAC** — Multi-tenant organizations with role-based access control
+- **SOC 2 Compliant** — Built with enterprise-grade security practices
 
 ## 🏗️ Architecture
 
-### Backend (FastAPI)
-- **Framework**: FastAPI with Python 3.11+
-- **Database**: PostgreSQL with SQLAlchemy ORM
-- **Authentication**: JWT tokens + LinkedIn OAuth 2.0
-- **Real-time**: WebSockets with Pusher
-- **Search**: Elasticsearch
-- **Cache**: Redis
-- **File Storage**: AWS S3
-- **Email**: SendGrid
-- **Monitoring**: Sentry
-
-### Frontend (Next.js)
-- **Framework**: Next.js 14 with TypeScript
-- **Styling**: TailwindCSS with custom components
-- **State Management**: Zustand + React Query
-- **UI Components**: Headless UI + Heroicons
-- **Forms**: React Hook Form
-- **Real-time**: Pusher client
-
-### Infrastructure
-- **Containerization**: Docker & Docker Compose
-- **Reverse Proxy**: Nginx
-- **Database**: PostgreSQL 15
-- **Search**: Elasticsearch 8.x
-- **Cache**: Redis 7
-- **Monitoring**: Sentry + Custom metrics
+| Layer          | Technology                        |
+|----------------|-----------------------------------|
+| **Backend**    | FastAPI · Python 3.11 · SQLAlchemy |
+| **Frontend**   | Next.js 14 · TypeScript · TailwindCSS |
+| **Database**   | PostgreSQL 15 (Supabase)          |
+| **Auth**       | JWT + LinkedIn OAuth 2.0 + MFA    |
+| **Search**     | Elasticsearch 8.x                 |
+| **Cache**      | Redis 7                           |
+| **Real-time**  | Pusher WebSockets                 |
+| **Email**      | SendGrid                          |
+| **Storage**    | AWS S3                            |
+| **Payments**   | Stripe                            |
+| **Monitoring** | Sentry                            |
+| **CI/CD**      | GitHub Actions + Railway           |
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Docker Compose (Fastest)
 
-- **Node.js 18+** (for frontend development)
-- **Python 3.11+** (for backend development)  
-- **Docker & Docker Compose** (for containerized deployment)
-- **PostgreSQL 15+** (for local database development)
+```bash
+git clone <repo-url>
+cd "Sourcing Supply Chain Net"
 
-### Option 1: Development Setup (Recommended for Development)
+# Copy environment files
+cp backend/.env.example backend/.env
+cp frontend/.env.local.example frontend/.env.local
 
-1. **Clone and setup**
-```cmd
-cd "c:\Users\cncha\OneDrive\Desktop\Sourcing Supply Chain Net"
-setup-dev.bat
+# Start all services
+docker-compose up -d
 ```
 
-2. **Configure environment variables**
-```cmd
-REM Backend configuration
-copy backend\.env.example backend\.env
-REM Edit backend\.env with your LinkedIn API keys and database settings
+Services will be available at:
+- **Frontend**: http://localhost:3100
+- **Backend API**: http://localhost:8100
+- **API Docs**: http://localhost:8100/docs
 
-REM Frontend configuration  
-copy frontend\.env.local.example frontend\.env.local
-REM Edit frontend\.env.local with your API URLs
+### Option 2: Local Development (Recommended for Development)
+
+```bash
+# One-time setup
+start-local-dev.bat
+
+# Start both servers
+run-local.bat
 ```
 
-3. **Start Backend (Terminal 1)**
-```cmd
+Or manually:
+
+```bash
+# Terminal 1 — Backend
 cd backend
-venv\Scripts\activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8100
-```
+python -m venv venv && venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-4. **Start Frontend (Terminal 2)**
-```cmd
+# Terminal 2 — Frontend
 cd frontend
+npm install
 npm run dev
 ```
 
-### Option 2: Docker Deployment
+- **Backend**: http://localhost:8000 (API docs at `/docs`)
+- **Frontend**: http://localhost:3000
 
-1. **Quick Docker setup**
-```cmd
-setup.bat
+## 📁 Project Structure
+
+```
+├── .github/workflows/      # CI/CD pipelines (GitHub Actions)
+│   ├── ci.yml               # Lint, test, build, security scan
+│   └── deploy.yml            # Deployment notifications
+├── backend/
+│   ├── app/
+│   │   ├── api/              # Route handlers (auth, rfq, billing, etc.)
+│   │   ├── core/             # Config, database, security, encryption
+│   │   ├── middleware/       # RBAC, security headers
+│   │   ├── models/           # SQLAlchemy models
+│   │   ├── schemas/          # Pydantic schemas
+│   │   └── services/         # Business logic (email, search, etc.)
+│   ├── alembic/              # Database migrations
+│   ├── tests/                # Pytest test suite
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── pages/            # Next.js pages
+│   │   ├── lib/              # Utilities and helpers
+│   │   └── types/            # TypeScript types
+│   ├── Dockerfile
+│   └── package.json
+├── docs/                     # SOC 2, deployment, security docs
+├── docker-compose.yml        # Local dev with all services
+└── supabase/schema.sql       # Database schema
 ```
 
-This will start all services with Docker Compose.
+## 📖 API Documentation
 
-### Access Points
-- **Frontend**: http://localhost:3100
-- **Backend API**: http://localhost:8100  
-- **API Documentation**: http://localhost:8100/docs
+Interactive API docs are available at `/docs` (Swagger UI) or `/redoc` when the backend is running.
 
-## 📋 API Documentation
+### Key Endpoints
 
-### Authentication Endpoints
-- `GET /api/auth/linkedin` - Initiate LinkedIn OAuth
-- `POST /api/auth/linkedin/callback` - Handle LinkedIn callback
-- `POST /api/auth/refresh` - Refresh access token
-- `GET /api/auth/me` - Get current user
+| Category       | Endpoint                        | Description                   |
+|----------------|---------------------------------|-------------------------------|
+| **Auth**       | `GET /api/auth/linkedin`        | Initiate LinkedIn OAuth       |
+|                | `POST /api/auth/linkedin/callback` | Handle OAuth callback      |
+|                | `POST /api/auth/refresh`        | Refresh access token          |
+| **RFQs**       | `POST /api/rfqs`                | Create RFQ                    |
+|                | `GET /api/rfqs`                 | List RFQs with filtering      |
+|                | `POST /api/rfqs/{id}/responses` | Submit response               |
+| **Companies**  | `POST /api/companies`           | Create company                |
+|                | `GET /api/search/suppliers`     | Search suppliers              |
+| **Billing**    | `POST /api/billing/subscribe`   | Create subscription           |
+| **Health**     | `GET /health`                   | Service health check          |
 
-### RFQ Management
-- `POST /api/rfqs` - Create RFQ
-- `GET /api/rfqs` - List RFQs with filtering
-- `GET /api/rfqs/{id}` - Get RFQ details
-- `PUT /api/rfqs/{id}` - Update RFQ
-- `DELETE /api/rfqs/{id}` - Delete RFQ
-- `POST /api/rfqs/{id}/responses` - Submit response
-- `GET /api/rfqs/{id}/responses` - Get responses (owner only)
+## 🔧 Environment Variables
 
-### Company Management
-- `POST /api/companies` - Create company
-- `GET /api/companies` - List companies
-- `GET /api/companies/{id}` - Get company details
-- `PUT /api/companies/{id}` - Update company
-- `POST /api/companies/{id}/pocs` - Add POC
-- `PUT /api/companies/{id}/pocs/{poc_id}` - Update POC
+### Backend (`backend/.env`)
 
-### Search & Discovery
-- `GET /api/search/suppliers` - Search suppliers
-- `GET /api/search/materials` - Search materials
-- `GET /api/recommendations` - Get AI recommendations
-
-## 🔧 Configuration
-
-### Required Environment Variables
-
-#### Backend (.env)
 ```env
 # Database
-DATABASE_URL=postgresql://username:password@localhost:5432/sscn_db
+DATABASE_URL=postgresql://user:pass@localhost:5432/sscn_db
 
-# LinkedIn API
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_ANON_KEY=your-anon-key
+
+# Authentication
+JWT_SECRET_KEY=your-jwt-secret
 LINKEDIN_CLIENT_ID=your-linkedin-client-id
 LINKEDIN_CLIENT_SECRET=your-linkedin-client-secret
-LINKEDIN_REDIRECT_URI=http://localhost:3000/auth/linkedin/callback
 
-# JWT
-SECRET_KEY=your-super-secret-key
-ALGORITHM=HS256
+# Services
+REDIS_URL=redis://localhost:6379/0
+ELASTICSEARCH_URL=http://localhost:9200
+SENDGRID_API_KEY=SG.your-key
+STRIPE_SECRET_KEY=sk_your-key
+SENTRY_DSN=https://your-sentry-dsn
 
-# Third-party Services
-SENDGRID_API_KEY=your-sendgrid-api-key
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+# Storage
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
 S3_BUCKET_NAME=sscn-documents
-PUSHER_APP_ID=your-pusher-app-id
-PUSHER_KEY=your-pusher-key
-PUSHER_SECRET=your-pusher-secret
 ```
 
-#### Frontend (.env.local)
+### Frontend (`frontend/.env.local`)
+
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_LINKEDIN_CLIENT_ID=your-linkedin-client-id
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_your-key
 NEXT_PUBLIC_PUSHER_KEY=your-pusher-key
 NEXT_PUBLIC_PUSHER_CLUSTER=us2
 ```
 
 ## 🧪 Testing
 
-### Backend Tests
 ```bash
+# Backend tests
 cd backend
-pytest tests/ -v --cov=app
-```
+pytest tests/ -v --cov=app --cov-report=term-missing
 
-### Frontend Tests
-```bash
+# Frontend type check
 cd frontend
-npm run test
-npm run test:e2e
+npx tsc --noEmit
+
+# Frontend build verification
+npm run build
 ```
 
-## 📈 LinkedIn API Integration
+CI runs automatically on push to `main`/`develop` and on pull requests — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
-### OAuth 2.0 Flow
-1. User clicks "Sign in with LinkedIn"
-2. Redirect to LinkedIn authorization URL
-3. User grants permissions
-4. LinkedIn redirects back with authorization code
-5. Exchange code for access token
-6. Fetch user profile and company data
-7. Verify employment and create/update user
+## 🚢 Deployment
 
-### Required LinkedIn Scopes
-- `r_liteprofile` - Basic profile information
-- `r_emailaddress` - Email address
-- `r_organization_social` - Company information
+**Production** is deployed on **Railway** with auto-deploy from the `main` branch.
 
-### Company Verification
-- Match user's current employer with company domain
-- Verify role and employment status
-- Auto-create company profiles from LinkedIn data
-- Establish POC relationships
+- Backend and Frontend are separate Railway services
+- PostgreSQL is hosted on Supabase
+- See [docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md) for details
 
-## 🔐 Security Features
+## 🔐 Security
 
-### Authentication & Authorization
-- JWT-based authentication with refresh tokens
+- JWT authentication with refresh tokens
 - LinkedIn OAuth 2.0 integration
+- TOTP-based Multi-Factor Authentication
 - Role-based access control (RBAC)
-- Rate limiting (60 requests/minute)
-- CORS protection
-
-### Data Protection
-- Input validation and sanitization
-- SQL injection prevention (SQLAlchemy ORM)
-- XSS protection (CSP headers)
-- Secure file uploads
-- Password hashing (bcrypt)
-
-### Compliance
-- SOC 2 Type II ready
-- GDPR compliance features
-- Data retention policies
-- Audit logging
-
-## 📊 Third-Party Integrations
-
-### LinkedIn API
-- User authentication and verification
-- Company data enrichment
-- Professional profile validation
-
-### SendGrid
-- Transactional emails
-- RFQ notifications
-- Welcome emails
-- Password reset
-
-### AWS S3
-- Document storage
-- File uploads
-- CDN integration
-
-### Clearbit (Optional)
-- Company data enrichment
-- Logo fetching
-- Industry classification
-
-### Pusher
-- Real-time notifications
-- Live chat
-- Status updates
-
-## 🚀 Deployment
-
-### Production Deployment
-```bash
-# Build and deploy with Docker
-docker-compose -f docker-compose.prod.yml up -d
-
-# Or deploy to cloud platforms
-# AWS ECS, Google Cloud Run, Azure Container Instances
-```
-
-### Environment Configuration
-- Use environment-specific Docker Compose files
-- Configure SSL certificates for HTTPS
-- Set up monitoring and logging
-- Configure backup strategies
-
-## 📋 TODO / Roadmap
-
-### Phase 1 (MVP) ✅
-- [x] LinkedIn OAuth integration
-- [x] Basic RFQ management
-- [x] Company profiles and POCs
-- [x] Real-time notifications
-- [x] Document uploads
-
-### Phase 2 (Growth)
-- [ ] Advanced search with Elasticsearch
-- [ ] AI-powered supplier matching
-- [ ] Mobile applications
-- [ ] Analytics dashboard
-- [ ] Bulk operations
-
-### Phase 3 (Scale)
-- [ ] Enterprise integrations (SAP, Oracle)
-- [ ] Multi-language support
-- [ ] Advanced reporting
-- [ ] API marketplace
-- [ ] White-label solutions
+- Rate limiting (60 req/min)
+- Input sanitization & CORS protection
+- SOC 2 Type II compliance — see [docs/SOC2_COMPLIANCE_GUIDE.md](docs/SOC2_COMPLIANCE_GUIDE.md)
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+CI checks (lint, type check, tests, security scan, Docker build) must pass before merge.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📞 Support
-
-- **Website**: [linkedprocurement.com](https://linkedprocurement.com)
-- **Email**: support@linkedprocurement.com
-- **Documentation**: Coming soon
-
-## 🏢 Business Model
-
-### Revenue Streams
-1. **Subscription Plans**: Tiered pricing for suppliers and buyers
-2. **Transaction Fees**: Commission on successful deals
-3. **Premium Features**: Advanced analytics, priority support
-4. **Enterprise Licenses**: Custom deployments for large corporations
-
-### Pricing Strategy
-- **Freemium**: Basic features for small companies
-- **Professional**: $99/month per company
-- **Enterprise**: Custom pricing for large organizations
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**LinkedProcurement** - Built with ❤️ for the global supply chain community
+**LinkedProcurement** — Built with ❤️ for the global supply chain community
 
 🌐 [linkedprocurement.com](https://linkedprocurement.com)

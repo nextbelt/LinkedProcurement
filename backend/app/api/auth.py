@@ -5,7 +5,6 @@ from typing import Optional
 from datetime import datetime
 import uuid
 import os
-import base64
 
 from app.core.database import get_db
 from app.core.security import (
@@ -427,16 +426,7 @@ async def get_current_user_info(
     """
     Get current authenticated user information
     """
-    # Verify token
-    token_data = verify_token(credentials.credentials)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
-    
-    # Get user from database
-    user = db.query(User).filter(User.id == token_data.sub).first()
+    user = get_current_user(db, credentials.credentials)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -473,16 +463,7 @@ async def update_user_profile(
     """
     Update current user's profile information
     """
-    # Verify token
-    token_data = verify_token(credentials.credentials)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
-    
-    # Get user from database
-    user = db.query(User).filter(User.id == token_data.sub).first()
+    user = get_current_user(db, credentials.credentials)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -553,19 +534,9 @@ async def upload_profile_picture(
     db: Session = Depends(get_db)
 ):
     """
-    Upload profile picture (converts to base64 data URL for now)
-    In production, this should upload to S3/cloud storage
+    Upload profile picture to S3 cloud storage.
     """
-    # Verify token
-    token_data = verify_token(credentials.credentials)
-    if not token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
-    
-    # Get user
-    user = db.query(User).filter(User.id == token_data.sub).first()
+    user = get_current_user(db, credentials.credentials)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -589,12 +560,31 @@ async def upload_profile_picture(
             detail="Image must be less than 5MB"
         )
     
-    # Convert to base64 data URL
-    base64_image = base64.b64encode(content).decode('utf-8')
-    data_url = f"data:{file.content_type};base64,{base64_image}"
+    # Upload to S3
+    from app.services.storage import S3StorageService
+    try:
+        storage = S3StorageService()
+        file_key = storage.generate_file_key(
+            rfq_id=f"profile/{user.id}",
+            filename=file.filename or "profile.jpg",
+            file_type="profile-pictures"
+        )
+        storage.s3_client.put_object(
+            Bucket=storage.bucket_name,
+            Key=file_key,
+            Body=content,
+            ContentType=file.content_type,
+        )
+        profile_url = f"https://{storage.bucket_name}.s3.amazonaws.com/{file_key}"
+    except Exception:
+        # Fallback: generate presigned URL style or raise
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload profile picture to storage. Check S3 configuration."
+        )
     
-    # Update user profile picture
-    user.profile_picture_url = data_url
+    # Update user profile picture URL (now a real URL, not base64)
+    user.profile_picture_url = profile_url
     db.commit()
     
     # Audit log
@@ -609,10 +599,10 @@ async def upload_profile_picture(
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             status_code=200,
-            details={"file_type": file.content_type, "file_size": len(content)}
+            details={"file_type": file.content_type, "file_size": len(content), "storage": "s3"}
         )
     
-    return {"profile_picture_url": data_url}
+    return {"profile_picture_url": profile_url}
 
 
 @router.post("/verify-email")

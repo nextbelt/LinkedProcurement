@@ -2,17 +2,25 @@
 Supabase client configuration for backend
 """
 import os
+import logging
 from supabase import create_client, Client
 from functools import lru_cache
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://hiawkadkxazmelnmeeto.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpYXdrYWRreGF6bWVsbm1lZXRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTMwMTI1NSwiZXhwIjoyMDgwODc3MjU1fQ.RNXm1IWVdPZ5tV7QzxISwJhnuRADaQL9Hpovjovoe2M")
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+logger = logging.getLogger(__name__)
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "")
 
 
 @lru_cache()
 def get_supabase_client() -> Client:
     """Get cached Supabase client instance"""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise RuntimeError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required. "
+            "See .env.example for configuration."
+        )
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 

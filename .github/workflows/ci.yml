@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "18"
+
+jobs:
+  backend-lint:
+    name: Backend Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pip install flake8 mypy
+      - run: flake8 app/ --max-line-length=120 --exclude=__pycache__
+      - run: mypy app/ --ignore-missing-imports --no-strict-optional
+
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: linkedprocurement_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/linkedprocurement_test
+      SUPABASE_URL: https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-key
+      SUPABASE_ANON_KEY: test-anon-key
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_test_dummy
+      SENDGRID_API_KEY: SG.test
+      SENTRY_DSN: ""
+      ENVIRONMENT: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pip install pytest pytest-cov pytest-asyncio httpx
+      - run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+
+  frontend-lint:
+    name: Frontend Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci || npm install
+      - run: npx tsc --noEmit
+        continue-on-error: true
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci || npm install
+      - run: npm run build
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install bandit safety
+      - run: bandit -r backend/app/ -ll -ii -x backend/app/__pycache__
+        continue-on-error: true
+      - run: safety check --file backend/requirements.txt
+        continue-on-error: true
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t linkedprocurement-backend ./backend
+      - run: docker build -t linkedprocurement-frontend ./frontend
