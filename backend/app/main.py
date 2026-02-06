@@ -11,6 +11,9 @@ from app.core.database import create_tables
 from app.core.sentry_config import init_sentry
 from app.api import auth, rfq, mfa, billing
 from app.api import health, data_management
+from app.api import organizations, rfq_extended, notifications
+from app.api import ai_assist
+from app.api import supplier_search
 from app.services.linkedin import linkedin_service
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
@@ -132,8 +135,8 @@ app.add_middleware(
     max_age=600
 )
 
-# 2. Security headers (SOC 2 Compliance) - TEMPORARILY DISABLED FOR DEBUGGING
-# app.add_middleware(SecurityHeadersMiddleware)
+# 2. Security headers (SOC 2 Compliance)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # 3. Rate limiting middleware
 @app.middleware("http")
@@ -277,6 +280,11 @@ app.include_router(mfa.router, prefix="/api/v1")
 app.include_router(rfq.router, prefix="/api/v1")
 app.include_router(data_management.router, prefix="/api/v1")
 app.include_router(billing.router)
+app.include_router(organizations.router, prefix="/api/v1/organizations", tags=["organizations"])
+app.include_router(rfq_extended.router, prefix="/api/v1", tags=["rfq-extended"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
+app.include_router(ai_assist.router)
+app.include_router(supplier_search.router, tags=["supplier-search"])
 
 
 # Additional API routes would be included here:

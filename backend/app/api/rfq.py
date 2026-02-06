@@ -60,9 +60,17 @@ async def create_rfq(
     sanitized_data = sanitize_rfq_data(rfq_dict)
     
     # Create RFQ
+    # Resolve organization_id from user's org membership
+    from app.models.organization import OrgMember
+    org_member = db.query(OrgMember).filter(
+        OrgMember.user_id == user.id,
+        OrgMember.is_active == True
+    ).first()
+    
     rfq = RFQ(
         buyer_id=user.id,
         buyer_company_id=poc.company_id,
+        organization_id=org_member.organization_id if org_member else None,
         title=sanitized_data.get('title', rfq_data.title),
         material_category=sanitized_data.get('material_category', rfq_data.material_category),
         quantity=rfq_data.quantity,
@@ -126,10 +134,12 @@ async def list_rfqs(
     material_category: Optional[str] = Query(None),
     status: Optional[str] = Query("active"),
     search: Optional[str] = Query(None),
+    organization_id: Optional[str] = Query(None, description="Filter by organization"),
     db: Session = Depends(get_db)
 ):
     """
-    List RFQs with filtering and pagination
+    List RFQs with filtering and pagination.
+    Supports organization-scoped queries via organization_id parameter.
     """
     query = db.query(RFQ)
     
@@ -149,13 +159,17 @@ async def list_rfqs(
             )
         )
     
-    # Only show public RFQs or RFQs that haven't expired
-    query = query.filter(
-        and_(
-            RFQ.visibility == "public",
-            or_(RFQ.expires_at.is_(None), RFQ.expires_at > datetime.utcnow())
+    # Organization-scoped filtering (tenant isolation)
+    if organization_id:
+        query = query.filter(RFQ.organization_id == organization_id)
+    else:
+        # Without org scope, only show public RFQs that haven't expired
+        query = query.filter(
+            and_(
+                RFQ.visibility == "public",
+                or_(RFQ.expires_at.is_(None), RFQ.expires_at > datetime.utcnow())
+            )
         )
-    )
     
     # Order by creation date (newest first)
     query = query.order_by(RFQ.created_at.desc())

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Boolean, Text, Integer, ForeignKey, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -69,16 +69,19 @@ class Company(Base):
     business_categories = Column(Text, nullable=True)  # JSON array of categories supplier focuses on
     raw_materials_focus = Column(Text, nullable=True)  # JSON array of raw materials company works with
     
+    # Tenant isolation
+    organization_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    
     # Business verification
     duns_number = Column(String(50), nullable=True)
     is_verified = Column(Boolean, default=False)
     verification_source = Column(String(100), nullable=True)  # linkedin, duns, manual
     
-    # Capabilities and certifications (stored as JSON)
-    certifications = Column(Text, nullable=True)  # JSON string
-    capabilities = Column(Text, nullable=True)  # JSON string
-    materials = Column(Text, nullable=True)  # JSON string
-    naics_codes = Column(Text, nullable=True)  # JSON string
+    # Capabilities and certifications (stored as JSONB)
+    certifications = Column(JSONB, nullable=True, default=list)
+    capabilities = Column(JSONB, nullable=True, default=list)
+    materials = Column(JSONB, nullable=True, default=list)
+    naics_codes = Column(JSONB, nullable=True, default=list)
     
     # Performance metrics
     response_rate = Column(Integer, default=0)  # Percentage
@@ -131,6 +134,7 @@ class RFQ(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     buyer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     buyer_company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False, index=True)
+    organization_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # Tenant isolation
     
     # RFQ details
     title = Column(String(255), nullable=False)
@@ -153,13 +157,17 @@ class RFQ(Base):
     incoterm = Column(String(20), nullable=True)  # e.g., "FOB", "CIF", "EXW", "DDP"
     commodity = Column(String(255), nullable=True, index=True)
     
-    # Requirements (stored as JSON)
-    required_certifications = Column(Text, nullable=True)  # JSON string
-    preferred_suppliers = Column(Text, nullable=True)  # JSON string
-    attachments = Column(Text, nullable=True)  # JSON string of file URLs
+    # Requirements (stored as JSONB)
+    required_certifications = Column(JSONB, nullable=True, default=list)
+    preferred_suppliers = Column(JSONB, nullable=True, default=list)
+    attachments = Column(JSONB, nullable=True, default=list)
+    
+    # Procurement controls
+    is_sealed_bid = Column(Boolean, default=False)
+    requires_nda = Column(Boolean, default=False)
     
     # Status and lifecycle
-    status = Column(String(50), default="active", index=True)  # active, closed, expired, cancelled
+    status = Column(String(50), default="draft", index=True)  # draft, published, evaluation, closed, awarded
     visibility = Column(String(50), default="public")  # public, private, invited_only
     expires_at = Column(DateTime, nullable=True)
     
@@ -188,7 +196,7 @@ class RFQResponse(Base):
     
     # Response details
     status = Column(String(50), default="submitted", index=True)  # submitted, under_review, accepted, rejected
-    price_quote = Column(String(255), nullable=True)
+    price_quote = Column(Numeric(14, 4), nullable=True)
     lead_time_days = Column(Integer, nullable=True)
     minimum_order_quantity = Column(String(255), nullable=True)
     message = Column(Text, nullable=True)
@@ -203,8 +211,8 @@ class RFQResponse(Base):
     raw_material_cost = Column(String(100), nullable=True)  # Currency/kg format
     
     # Attachments and additional info
-    attachments = Column(Text, nullable=True)  # JSON string of file URLs
-    certifications_provided = Column(Text, nullable=True)  # JSON string
+    attachments = Column(JSONB, nullable=True, default=list)
+    certifications_provided = Column(JSONB, nullable=True, default=list)
     
     # Response metrics
     is_competitive = Column(Boolean, nullable=True)

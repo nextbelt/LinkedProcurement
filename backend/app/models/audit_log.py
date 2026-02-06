@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, DateTime, Text, Integer
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from app.core.database import Base
 import uuid
@@ -11,10 +12,10 @@ class AuditLog(Base):
     """
     __tablename__ = "audit_logs"
     
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     # Who performed the action
-    user_id = Column(String, index=True, nullable=True)
+    user_id = Column(UUID(as_uuid=True), index=True, nullable=True)
     user_email = Column(String, nullable=True)
     
     # What action was performed
@@ -23,7 +24,7 @@ class AuditLog(Base):
     resource_id = Column(String, nullable=True, index=True)
     
     # Additional context
-    details = Column(Text, nullable=True)  # JSON string with additional info
+    details = Column(JSONB, nullable=True, default=dict)
     
     # Request metadata
     ip_address = Column(String, nullable=True)
